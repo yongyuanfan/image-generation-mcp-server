@@ -43,3 +43,7 @@ docker compose up --build
 This project uses a thin Ark HTTP client so the MCP layer and REST layer share the same service contract.
 
 The exact upstream request schema for some Seedream image editing options can vary by model revision. The integration keeps the business interface stable and forwards image-edit specific options through the provider layer.
+
+Current default model ID:
+
+- `doubao-seedream-4-5-251128`

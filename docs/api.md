@@ -20,8 +20,8 @@ Response:
 
 ```json
 {
-  "text_to_image_model": "doubao-seedream-3-0-t2i-250415",
-  "image_to_image_model": "doubao-seededit-3-0-i2i-250628"
+  "text_to_image_model": "doubao-seedream-4-5-251128",
+  "image_to_image_model": "doubao-seedream-4-5-251128"
 }
 ```
 
@@ -63,7 +63,7 @@ Common response:
     "https://..."
   ],
   "request_id": "202605111234567890",
-  "model": "doubao-seedream-3-0-t2i-250415",
+  "model": "doubao-seedream-4-5-251128",
   "created_at": 1770000000
 }
 ```
