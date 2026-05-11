@@ -19,6 +19,8 @@ cp .env.example .env
 go run ./cmd/server
 ```
 
+The server automatically loads environment variables from the project root `.env` file.
+
 Default endpoints:
 
 - MCP: `http://localhost:8080/mcp`

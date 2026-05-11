@@ -1,8 +1,10 @@
 package config
 
 import (
+	"bufio"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -23,6 +25,10 @@ type Config struct {
 }
 
 func Load() (Config, error) {
+	if err := loadDotEnvIfPresent(); err != nil {
+		return Config{}, err
+	}
+
 	timeoutSeconds, err := intFromEnv("REQUEST_TIMEOUT_SECONDS", 120)
 	if err != nil {
 		return Config{}, err
@@ -82,4 +88,46 @@ func normalizePath(value string) string {
 		trimmed = "/" + trimmed
 	}
 	return strings.TrimRight(trimmed, "/")
+}
+
+func loadDotEnvIfPresent() error {
+	wd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	file, err := os.Open(filepath.Join(wd, ".env"))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	defer file.Close()
+
+	scanner := bufio.NewScanner(file)
+	for scanner.Scan() {
+		line := strings.TrimSpace(scanner.Text())
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+
+		key, value, ok := strings.Cut(line, "=")
+		if !ok {
+			continue
+		}
+
+		key = strings.TrimSpace(key)
+		if key == "" || os.Getenv(key) != "" {
+			continue
+		}
+
+		value = strings.TrimSpace(value)
+		value = strings.Trim(value, `"'`)
+		if err := os.Setenv(key, value); err != nil {
+			return err
+		}
+	}
+
+	return scanner.Err()
 }
