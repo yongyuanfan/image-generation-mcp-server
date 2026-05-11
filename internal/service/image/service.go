@@ -55,7 +55,7 @@ func normalizeRequest(input model.GenerateImageRequest) model.GenerateImageReque
 	input.ImageURL = strings.TrimSpace(input.ImageURL)
 	input.ImageBase64 = strings.TrimSpace(input.ImageBase64)
 	if input.Size == "" {
-		input.Size = "1024x1024"
+		input.Size = "2048x2048"
 	}
 	if input.ResponseFormat == "" {
 		input.ResponseFormat = "url"

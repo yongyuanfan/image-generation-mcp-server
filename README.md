@@ -31,6 +31,14 @@ Default endpoints:
 docker compose up --build
 ```
 
+## Quick Verification
+
+Run the local smoke test after the server starts:
+
+```bash
+bash scripts/smoke_test.sh
+```
+
 ## Documents
 
 - `docs/api.md`
@@ -47,3 +55,7 @@ The exact upstream request schema for some Seedream image editing options can va
 Current default model ID:
 
 - `doubao-seedream-4-5-251128`
+
+Current default image size:
+
+- `2048x2048`

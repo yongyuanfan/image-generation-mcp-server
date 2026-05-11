@@ -48,3 +48,58 @@ Start the server and connect an MCP client to:
 ```text
 http://localhost:8080/mcp
 ```
+
+## JSON-RPC examples
+
+Initialize session:
+
+```bash
+curl -X POST http://localhost:8080/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 1,
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2025-03-26",
+      "capabilities": {},
+      "clientInfo": {
+        "name": "curl-client",
+        "version": "0.1.0"
+      }
+    }
+  }'
+```
+
+List tools:
+
+```bash
+curl -X POST http://localhost:8080/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 2,
+    "method": "tools/list",
+    "params": {}
+  }'
+```
+
+Call `text_to_image`:
+
+```bash
+curl -X POST http://localhost:8080/mcp \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {
+      "name": "text_to_image",
+      "arguments": {
+        "prompt": "A cinematic cat astronaut on the moon",
+        "size": "2048x2048",
+        "response_format": "url"
+      }
+    }
+  }'
+```

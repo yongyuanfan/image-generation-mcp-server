@@ -4,6 +4,12 @@
 
 `GET /healthz`
 
+Example:
+
+```bash
+curl http://localhost:8080/healthz
+```
+
 Response:
 
 ```json
@@ -15,6 +21,12 @@ Response:
 ## List Models
 
 `GET /api/v1/models`
+
+Example:
+
+```bash
+curl http://localhost:8080/api/v1/models
+```
 
 Response:
 
@@ -29,12 +41,25 @@ Response:
 
 `POST /api/v1/images/generations`
 
+Example:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/images/generations \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "prompt": "A cinematic cat astronaut on the moon",
+    "size": "2048x2048",
+    "response_format": "url",
+    "num_images": 1
+  }'
+```
+
 Request:
 
 ```json
 {
   "prompt": "A cinematic cat astronaut on the moon",
-  "size": "1024x1024",
+  "size": "2048x2048",
   "response_format": "url",
   "num_images": 1
 }
@@ -43,6 +68,31 @@ Request:
 ## Image To Image
 
 `POST /api/v1/images/edits`
+
+Example with image URL:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/images/edits \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "prompt": "Turn this sketch into a watercolor poster",
+    "image_url": "https://example.com/input.png",
+    "response_format": "url",
+    "strength": 0.7
+  }'
+```
+
+Example with base64 image:
+
+```bash
+curl -X POST http://localhost:8080/api/v1/images/edits \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "prompt": "Convert this into a product poster",
+    "image_base64": "<BASE64_IMAGE>",
+    "response_format": "b64_json"
+  }'
+```
 
 Request:
 
@@ -65,5 +115,15 @@ Common response:
   "request_id": "202605111234567890",
   "model": "doubao-seedream-4-5-251128",
   "created_at": 1770000000
+}
+```
+
+Validation error example:
+
+```json
+{
+  "error": {
+    "message": "prompt is required"
+  }
 }
 ```
