@@ -23,9 +23,9 @@ The server automatically loads environment variables from the project root `.env
 
 Default endpoints:
 
-- MCP: `http://localhost:8080/mcp`
-- API: `http://localhost:8080/api/v1`
-- Health: `http://localhost:8080/healthz`
+- MCP: `http://localhost:9101/mcp`
+- API: `http://localhost:9101/api/v1`
+- Health: `http://localhost:9101/healthz`
 
 ## Docker
 

@@ -14,6 +14,6 @@ WORKDIR /app
 
 COPY --from=builder /out/image-generation-mcp-server /app/image-generation-mcp-server
 
-EXPOSE 8080
+EXPOSE 9101
 
 ENTRYPOINT ["/app/image-generation-mcp-server"]

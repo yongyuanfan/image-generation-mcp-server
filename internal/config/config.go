@@ -35,7 +35,7 @@ func Load() (Config, error) {
 	}
 
 	cfg := Config{
-		HTTPAddr:             envOrDefault("HTTP_ADDR", ":8080"),
+		HTTPAddr:             envOrDefault("HTTP_ADDR", ":9101"),
 		APIPrefix:            normalizePath(envOrDefault("API_PREFIX", "/api/v1")),
 		MCPPath:              normalizePath(envOrDefault("MCP_PATH", "/mcp")),
 		ARKAPIKey:            strings.TrimSpace(os.Getenv("ARK_API_KEY")),

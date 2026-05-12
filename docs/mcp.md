@@ -46,7 +46,7 @@ Both tools return:
 Start the server and connect an MCP client to:
 
 ```text
-http://localhost:8080/mcp
+http://localhost:9101/mcp
 ```
 
 ## JSON-RPC examples
@@ -54,7 +54,7 @@ http://localhost:8080/mcp
 Initialize session:
 
 ```bash
-curl -X POST http://localhost:8080/mcp \
+curl -X POST http://localhost:9101/mcp \
   -H 'Content-Type: application/json' \
   -d '{
     "jsonrpc": "2.0",
@@ -74,7 +74,7 @@ curl -X POST http://localhost:8080/mcp \
 List tools:
 
 ```bash
-curl -X POST http://localhost:8080/mcp \
+curl -X POST http://localhost:9101/mcp \
   -H 'Content-Type: application/json' \
   -d '{
     "jsonrpc": "2.0",
@@ -87,7 +87,7 @@ curl -X POST http://localhost:8080/mcp \
 Call `text_to_image`:
 
 ```bash
-curl -X POST http://localhost:8080/mcp \
+curl -X POST http://localhost:9101/mcp \
   -H 'Content-Type: application/json' \
   -d '{
     "jsonrpc": "2.0",

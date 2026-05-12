@@ -18,7 +18,7 @@ func main() {
 	ctx := context.Background()
 
 	transport := &mcp.StreamableClientTransport{
-		Endpoint: envOrDefault("MCP_SERVER_URL", "http://localhost:8080/mcp"),
+		Endpoint: envOrDefault("MCP_SERVER_URL", "http://localhost:9101/mcp"),
 	}
 
 	client := mcp.NewClient(&mcp.Implementation{Name: "eino-example-client", Version: "0.1.0"}, nil)

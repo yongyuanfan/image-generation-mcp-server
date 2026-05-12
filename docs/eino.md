@@ -12,7 +12,7 @@ go run ./cmd/server
 ## Run the Eino example
 
 ```bash
-MCP_SERVER_URL=http://localhost:8080/mcp \
+MCP_SERVER_URL=http://localhost:9101/mcp \
 ARK_API_KEY=your_ark_api_key \
 go run ./examples/eino
 ```

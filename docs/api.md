@@ -7,7 +7,7 @@
 Example:
 
 ```bash
-curl http://localhost:8080/healthz
+curl http://localhost:9101/healthz
 ```
 
 Response:
@@ -25,7 +25,7 @@ Response:
 Example:
 
 ```bash
-curl http://localhost:8080/api/v1/models
+curl http://localhost:9101/api/v1/models
 ```
 
 Response:
@@ -44,7 +44,7 @@ Response:
 Example:
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/images/generations \
+curl -X POST http://localhost:9101/api/v1/images/generations \
   -H 'Content-Type: application/json' \
   -d '{
     "prompt": "A cinematic cat astronaut on the moon",
@@ -72,7 +72,7 @@ Request:
 Example with image URL:
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/images/edits \
+curl -X POST http://localhost:9101/api/v1/images/edits \
   -H 'Content-Type: application/json' \
   -d '{
     "prompt": "Turn this sketch into a watercolor poster",
@@ -85,7 +85,7 @@ curl -X POST http://localhost:8080/api/v1/images/edits \
 Example with base64 image:
 
 ```bash
-curl -X POST http://localhost:8080/api/v1/images/edits \
+curl -X POST http://localhost:9101/api/v1/images/edits \
   -H 'Content-Type: application/json' \
   -d '{
     "prompt": "Convert this into a product poster",

@@ -7,7 +7,7 @@ cp .env.example .env
 docker compose up --build
 ```
 
-The service listens on port `8080` by default.
+The service listens on port `9101` by default.
 
 ## Exposed endpoints
 
