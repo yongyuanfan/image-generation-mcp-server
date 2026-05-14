@@ -8,6 +8,8 @@ This project exposes a Streamable HTTP MCP server at `/mcp`.
 
 Generate one or more images from a text prompt.
 
+When MinIO is configured, returned image URLs are rewritten to `MINIO_PUBLIC_BASE_URL/{bucket}/{objectName}` after upload. Failed uploads fall back to the original upstream image result.
+
 Inputs:
 
 - `prompt`
@@ -21,6 +23,8 @@ Inputs:
 ### `image_to_image`
 
 Generate one or more edited images from a prompt and an input image.
+
+The same MinIO upload and fallback behavior applies to edited images.
 
 Inputs:
 

@@ -8,11 +8,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/yong/image-generation-mcp-server/internal/apiserver"
-	"github.com/yong/image-generation-mcp-server/internal/config"
-	"github.com/yong/image-generation-mcp-server/internal/mcpserver"
-	"github.com/yong/image-generation-mcp-server/internal/provider/ark"
-	imagesvc "github.com/yong/image-generation-mcp-server/internal/service/image"
+	"image-generation-mcp-server/internal/apiserver"
+	"image-generation-mcp-server/internal/config"
+	"image-generation-mcp-server/internal/mcpserver"
+	"image-generation-mcp-server/internal/provider/ark"
+	imagesvc "image-generation-mcp-server/internal/service/image"
+	miniostorage "image-generation-mcp-server/internal/storage/minio"
 )
 
 func main() {
@@ -22,7 +23,11 @@ func main() {
 	}
 
 	provider := ark.NewClient(cfg)
-	service := imagesvc.NewService(cfg, provider)
+	uploader, err := miniostorage.NewClient(context.Background(), cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	service := imagesvc.NewService(cfg, provider, uploader)
 
 	mcpHandler := mcpserver.NewHandler(cfg, service)
 	apiHandler := apiserver.NewHandler(cfg, service)

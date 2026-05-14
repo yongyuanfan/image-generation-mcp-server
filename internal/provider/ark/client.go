@@ -11,8 +11,8 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/yong/image-generation-mcp-server/internal/config"
-	"github.com/yong/image-generation-mcp-server/internal/model"
+	"image-generation-mcp-server/internal/config"
+	"image-generation-mcp-server/internal/model"
 )
 
 type Client struct {

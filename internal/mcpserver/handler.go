@@ -4,10 +4,11 @@ import (
 	"context"
 	"net/http"
 
+	"image-generation-mcp-server/internal/config"
+	"image-generation-mcp-server/internal/model"
+	imagesvc "image-generation-mcp-server/internal/service/image"
+
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/yong/image-generation-mcp-server/internal/config"
-	"github.com/yong/image-generation-mcp-server/internal/model"
-	imagesvc "github.com/yong/image-generation-mcp-server/internal/service/image"
 )
 
 type textToImageInput struct {

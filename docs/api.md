@@ -41,6 +41,8 @@ Response:
 
 `POST /api/v1/images/generations`
 
+If MinIO is configured, the server uploads generated images to MinIO and returns `MINIO_PUBLIC_BASE_URL/{bucket}/{objectName}`. If an upload fails, the original upstream image address is returned for that image.
+
 Example:
 
 ```bash
@@ -68,6 +70,8 @@ Request:
 ## Image To Image
 
 `POST /api/v1/images/edits`
+
+The same MinIO upload and fallback behavior applies to edited images.
 
 Example with image URL:
 

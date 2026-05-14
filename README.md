@@ -9,6 +9,7 @@ A Go MCP server and REST API for text-to-image and image-to-image generation usi
 - REST API for direct service integration
 - Doubao Seedream text-to-image support
 - Doubao Seedream image-to-image support
+- Optional MinIO persistence with public URL rewrite
 - Docker deployment support
 - Eino integration example
 
@@ -20,6 +21,8 @@ go run ./cmd/server
 ```
 
 The server automatically loads environment variables from the project root `.env` file.
+
+If MinIO is configured, generated images are downloaded or decoded by the service, uploaded to MinIO, and the returned `images` values are rewritten to `MINIO_PUBLIC_BASE_URL/{bucket}/{objectName}`. When an upload fails, the service falls back to the original provider URL or inline image.
 
 Default endpoints:
 

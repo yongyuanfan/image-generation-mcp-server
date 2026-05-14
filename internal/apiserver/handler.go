@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/yong/image-generation-mcp-server/internal/common"
-	"github.com/yong/image-generation-mcp-server/internal/config"
-	"github.com/yong/image-generation-mcp-server/internal/model"
-	imagesvc "github.com/yong/image-generation-mcp-server/internal/service/image"
+	"image-generation-mcp-server/internal/common"
+	"image-generation-mcp-server/internal/config"
+	"image-generation-mcp-server/internal/model"
+	imagesvc "image-generation-mcp-server/internal/service/image"
 )
 
 type Handler struct {

@@ -3,11 +3,14 @@ package image
 import (
 	"context"
 	"fmt"
+	"log"
+	"net/http"
 	"strings"
 	"time"
 
-	"github.com/yong/image-generation-mcp-server/internal/config"
-	"github.com/yong/image-generation-mcp-server/internal/model"
+	"image-generation-mcp-server/internal/config"
+	"image-generation-mcp-server/internal/model"
+	"image-generation-mcp-server/internal/storage"
 )
 
 type provider interface {
@@ -16,12 +19,19 @@ type provider interface {
 }
 
 type Service struct {
-	config   config.Config
-	provider provider
+	config     config.Config
+	provider   provider
+	uploader   storage.Uploader
+	httpClient *http.Client
 }
 
-func NewService(cfg config.Config, provider provider) *Service {
-	return &Service{config: cfg, provider: provider}
+func NewService(cfg config.Config, provider provider, uploader storage.Uploader) *Service {
+	return &Service{
+		config:     cfg,
+		provider:   provider,
+		uploader:   uploader,
+		httpClient: &http.Client{Timeout: cfg.RequestTimeout},
+	}
 }
 
 func (s *Service) TextToImage(ctx context.Context, input model.GenerateImageRequest) (model.GenerateImageResponse, error) {
@@ -29,7 +39,8 @@ func (s *Service) TextToImage(ctx context.Context, input model.GenerateImageRequ
 	if strings.TrimSpace(input.Prompt) == "" {
 		return model.GenerateImageResponse{}, fmt.Errorf("prompt is required")
 	}
-	return s.withFallbackTimestamp(s.provider.TextToImage(ctx, input))
+	response, err := s.provider.TextToImage(ctx, input)
+	return s.finalizeResponse(ctx, response, err)
 }
 
 func (s *Service) ImageToImage(ctx context.Context, input model.GenerateImageRequest) (model.GenerateImageResponse, error) {
@@ -40,7 +51,8 @@ func (s *Service) ImageToImage(ctx context.Context, input model.GenerateImageReq
 	if strings.TrimSpace(input.ImageURL) == "" && strings.TrimSpace(input.ImageBase64) == "" {
 		return model.GenerateImageResponse{}, fmt.Errorf("image_url or image_base64 is required")
 	}
-	return s.withFallbackTimestamp(s.provider.ImageToImage(ctx, input))
+	response, err := s.provider.ImageToImage(ctx, input)
+	return s.finalizeResponse(ctx, response, err)
 }
 
 func (s *Service) Models() model.ModelInfo {
@@ -74,5 +86,34 @@ func (s *Service) withFallbackTimestamp(response model.GenerateImageResponse, er
 	if response.CreatedAt == 0 {
 		response.CreatedAt = time.Now().Unix()
 	}
+	return response, nil
+}
+
+func (s *Service) finalizeResponse(ctx context.Context, response model.GenerateImageResponse, err error) (model.GenerateImageResponse, error) {
+	response, err = s.withFallbackTimestamp(response, err)
+	if err != nil {
+		return model.GenerateImageResponse{}, err
+	}
+	if s.uploader == nil || len(response.Images) == 0 {
+		return response, nil
+	}
+
+	for index, original := range response.Images {
+		asset, resolveErr := s.resolveImageAsset(ctx, original)
+		if resolveErr != nil {
+			log.Printf("skip minio upload for request_id=%s image_index=%d: resolve image failed: %v", response.RequestID, index, resolveErr)
+			continue
+		}
+
+		objectName := buildObjectName(s.config.MinIOObjectPrefix, response.RequestID, index, asset.ext, time.Now())
+		uploadedURL, uploadErr := s.uploader.Upload(ctx, objectName, asset.contentType, asset.data)
+		if uploadErr != nil {
+			log.Printf("skip minio upload for request_id=%s image_index=%d object_name=%s: %v", response.RequestID, index, objectName, uploadErr)
+			continue
+		}
+
+		response.Images[index] = uploadedURL
+	}
+
 	return response, nil
 }
