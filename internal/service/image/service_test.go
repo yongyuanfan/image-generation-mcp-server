@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -112,5 +113,35 @@ func TestTextToImageFallsBackToOriginalURLWhenUploadFails(t *testing.T) {
 	}
 	if uploader.objectName == "" {
 		t.Fatal("expected uploader to be called before fallback")
+	}
+}
+
+func TestTextToImageRejectsTooSmallSize(t *testing.T) {
+	service := NewService(config.Config{RequestTimeout: time.Second}, stubProvider{}, nil)
+	_, err := service.TextToImage(context.Background(), model.GenerateImageRequest{
+		Prompt: "test prompt",
+		Size:   "1024x1024",
+	})
+	if err == nil || !strings.Contains(err.Error(), "size must be at least 3686400 pixels") {
+		t.Fatalf("expected size validation error, got %v", err)
+	}
+}
+
+func TestTextToImageRejectsInvalidSizeFormat(t *testing.T) {
+	service := NewService(config.Config{RequestTimeout: time.Second}, stubProvider{}, nil)
+	_, err := service.TextToImage(context.Background(), model.GenerateImageRequest{
+		Prompt: "test prompt",
+		Size:   "1024*1024",
+	})
+	if err == nil || !strings.Contains(err.Error(), "size must be in WIDTHxHEIGHT format") {
+		t.Fatalf("expected invalid size format error, got %v", err)
+	}
+}
+
+func TestTextToImageUsesDefaultValidSize(t *testing.T) {
+	service := NewService(config.Config{RequestTimeout: time.Second}, stubProvider{response: model.GenerateImageResponse{}}, nil)
+	_, err := service.TextToImage(context.Background(), model.GenerateImageRequest{Prompt: "test prompt"})
+	if err != nil {
+		t.Fatalf("expected default size to pass validation, got %v", err)
 	}
 }

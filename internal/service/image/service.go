@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 	"time"
 
@@ -12,6 +13,8 @@ import (
 	"image-generation-mcp-server/internal/model"
 	"image-generation-mcp-server/internal/storage"
 )
+
+const minimumImagePixels = 3686400
 
 type provider interface {
 	TextToImage(context.Context, model.GenerateImageRequest) (model.GenerateImageResponse, error)
@@ -35,7 +38,11 @@ func NewService(cfg config.Config, provider provider, uploader storage.Uploader)
 }
 
 func (s *Service) TextToImage(ctx context.Context, input model.GenerateImageRequest) (model.GenerateImageResponse, error) {
-	input = normalizeRequest(input)
+	var err error
+	input, err = normalizeRequest(input)
+	if err != nil {
+		return model.GenerateImageResponse{}, err
+	}
 	if strings.TrimSpace(input.Prompt) == "" {
 		return model.GenerateImageResponse{}, fmt.Errorf("prompt is required")
 	}
@@ -44,7 +51,11 @@ func (s *Service) TextToImage(ctx context.Context, input model.GenerateImageRequ
 }
 
 func (s *Service) ImageToImage(ctx context.Context, input model.GenerateImageRequest) (model.GenerateImageResponse, error) {
-	input = normalizeRequest(input)
+	var err error
+	input, err = normalizeRequest(input)
+	if err != nil {
+		return model.GenerateImageResponse{}, err
+	}
 	if strings.TrimSpace(input.Prompt) == "" {
 		return model.GenerateImageResponse{}, fmt.Errorf("prompt is required")
 	}
@@ -62,12 +73,16 @@ func (s *Service) Models() model.ModelInfo {
 	}
 }
 
-func normalizeRequest(input model.GenerateImageRequest) model.GenerateImageRequest {
+func normalizeRequest(input model.GenerateImageRequest) (model.GenerateImageRequest, error) {
 	input.Prompt = strings.TrimSpace(input.Prompt)
 	input.ImageURL = strings.TrimSpace(input.ImageURL)
 	input.ImageBase64 = strings.TrimSpace(input.ImageBase64)
+	input.Size = strings.TrimSpace(input.Size)
 	if input.Size == "" {
 		input.Size = "2048x2048"
+	}
+	if err := validateImageSize(input.Size); err != nil {
+		return model.GenerateImageRequest{}, err
 	}
 	if input.ResponseFormat == "" {
 		input.ResponseFormat = "url"
@@ -76,7 +91,36 @@ func normalizeRequest(input model.GenerateImageRequest) model.GenerateImageReque
 		defaultCount := 1
 		input.NumImages = &defaultCount
 	}
-	return input
+	return input, nil
+}
+
+func validateImageSize(size string) error {
+	width, height, err := parseImageSize(size)
+	if err != nil {
+		return err
+	}
+	if width*height < minimumImagePixels {
+		return fmt.Errorf("size must be at least %d pixels", minimumImagePixels)
+	}
+	return nil
+}
+
+func parseImageSize(size string) (int, int, error) {
+	parts := strings.Split(size, "x")
+	if len(parts) != 2 {
+		return 0, 0, fmt.Errorf("size must be in WIDTHxHEIGHT format, for example 2048x2048")
+	}
+
+	width, err := strconv.Atoi(strings.TrimSpace(parts[0]))
+	if err != nil || width <= 0 {
+		return 0, 0, fmt.Errorf("size must be in WIDTHxHEIGHT format, for example 2048x2048")
+	}
+	height, err := strconv.Atoi(strings.TrimSpace(parts[1]))
+	if err != nil || height <= 0 {
+		return 0, 0, fmt.Errorf("size must be in WIDTHxHEIGHT format, for example 2048x2048")
+	}
+
+	return width, height, nil
 }
 
 func (s *Service) withFallbackTimestamp(response model.GenerateImageResponse, err error) (model.GenerateImageResponse, error) {
