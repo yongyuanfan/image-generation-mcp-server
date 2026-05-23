@@ -2,6 +2,7 @@ package image
 
 import (
 	"context"
+	"encoding/base64"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -16,13 +17,16 @@ import (
 type stubProvider struct {
 	response model.GenerateImageResponse
 	err      error
+	request  model.GenerateImageRequest
 }
 
-func (s stubProvider) TextToImage(context.Context, model.GenerateImageRequest) (model.GenerateImageResponse, error) {
+func (s *stubProvider) TextToImage(_ context.Context, input model.GenerateImageRequest) (model.GenerateImageResponse, error) {
+	s.request = input
 	return s.response, s.err
 }
 
-func (s stubProvider) ImageToImage(context.Context, model.GenerateImageRequest) (model.GenerateImageResponse, error) {
+func (s *stubProvider) ImageToImage(_ context.Context, input model.GenerateImageRequest) (model.GenerateImageResponse, error) {
+	s.request = input
 	return s.response, s.err
 }
 
@@ -52,14 +56,15 @@ func TestTextToImageRewritesURLAfterUpload(t *testing.T) {
 	defer server.Close()
 
 	uploader := &stubUploader{url: "https://cdn.example.com/generated-images/ai-images/2026/05/14/request-1-0.png"}
-	service := NewService(config.Config{
-		RequestTimeout:    time.Second,
-		MinIOObjectPrefix: "ai-images",
-	}, stubProvider{response: model.GenerateImageResponse{
+	provider := &stubProvider{response: model.GenerateImageResponse{
 		Images:    []string{server.URL},
 		RequestID: "request-1",
 		CreatedAt: 123,
-	}}, uploader)
+	}}
+	service := NewService(config.Config{
+		RequestTimeout:    time.Second,
+		MinIOObjectPrefix: "ai-images",
+	}, provider, uploader)
 
 	response, err := service.TextToImage(context.Background(), model.GenerateImageRequest{Prompt: "test prompt"})
 	if err != nil {
@@ -91,14 +96,15 @@ func TestTextToImageFallsBackToOriginalURLWhenUploadFails(t *testing.T) {
 	defer server.Close()
 
 	uploader := &stubUploader{err: errors.New("upload failed")}
-	service := NewService(config.Config{
-		RequestTimeout:    time.Second,
-		MinIOObjectPrefix: "ai-images",
-	}, stubProvider{response: model.GenerateImageResponse{
+	provider := &stubProvider{response: model.GenerateImageResponse{
 		Images:    []string{server.URL},
 		RequestID: "request-2",
 		CreatedAt: 456,
-	}}, uploader)
+	}}
+	service := NewService(config.Config{
+		RequestTimeout:    time.Second,
+		MinIOObjectPrefix: "ai-images",
+	}, provider, uploader)
 
 	response, err := service.TextToImage(context.Background(), model.GenerateImageRequest{Prompt: "test prompt"})
 	if err != nil {
@@ -117,7 +123,7 @@ func TestTextToImageFallsBackToOriginalURLWhenUploadFails(t *testing.T) {
 }
 
 func TestTextToImageRejectsTooSmallSize(t *testing.T) {
-	service := NewService(config.Config{RequestTimeout: time.Second}, stubProvider{}, nil)
+	service := NewService(config.Config{RequestTimeout: time.Second}, &stubProvider{}, nil)
 	_, err := service.TextToImage(context.Background(), model.GenerateImageRequest{
 		Prompt: "test prompt",
 		Size:   "1024x1024",
@@ -128,7 +134,7 @@ func TestTextToImageRejectsTooSmallSize(t *testing.T) {
 }
 
 func TestTextToImageRejectsInvalidSizeFormat(t *testing.T) {
-	service := NewService(config.Config{RequestTimeout: time.Second}, stubProvider{}, nil)
+	service := NewService(config.Config{RequestTimeout: time.Second}, &stubProvider{}, nil)
 	_, err := service.TextToImage(context.Background(), model.GenerateImageRequest{
 		Prompt: "test prompt",
 		Size:   "1024*1024",
@@ -139,9 +145,68 @@ func TestTextToImageRejectsInvalidSizeFormat(t *testing.T) {
 }
 
 func TestTextToImageUsesDefaultValidSize(t *testing.T) {
-	service := NewService(config.Config{RequestTimeout: time.Second}, stubProvider{response: model.GenerateImageResponse{}}, nil)
+	service := NewService(config.Config{RequestTimeout: time.Second}, &stubProvider{response: model.GenerateImageResponse{}}, nil)
 	_, err := service.TextToImage(context.Background(), model.GenerateImageRequest{Prompt: "test prompt"})
 	if err != nil {
 		t.Fatalf("expected default size to pass validation, got %v", err)
+	}
+}
+
+func TestImageToImageKeepsImageURL(t *testing.T) {
+	provider := &stubProvider{response: model.GenerateImageResponse{CreatedAt: 123}}
+	service := NewService(config.Config{RequestTimeout: time.Second}, provider, nil)
+
+	_, err := service.ImageToImage(context.Background(), model.GenerateImageRequest{
+		Prompt:   "edit prompt",
+		ImageURL: "https://example.com/source.png",
+	})
+	if err != nil {
+		t.Fatalf("ImageToImage returned error: %v", err)
+	}
+
+	if provider.request.ImageURL != "https://example.com/source.png" {
+		t.Fatalf("expected image_url to be preserved, got %q", provider.request.ImageURL)
+	}
+	if provider.request.ImageBase64 != "" {
+		t.Fatalf("expected image_base64 to be cleared, got %q", provider.request.ImageBase64)
+	}
+}
+
+func TestImageToImageUploadsInlineBase64(t *testing.T) {
+	provider := &stubProvider{response: model.GenerateImageResponse{CreatedAt: 123}}
+	uploader := &stubUploader{url: "https://cdn.example.com/source/source-0.png"}
+	service := NewService(config.Config{RequestTimeout: time.Second, MinIOObjectPrefix: "source"}, provider, uploader)
+
+	inline := "data:image/png;base64," + base64.StdEncoding.EncodeToString([]byte("inline-image"))
+	_, err := service.ImageToImage(context.Background(), model.GenerateImageRequest{
+		Prompt:      "edit prompt",
+		ImageBase64: inline,
+	})
+	if err != nil {
+		t.Fatalf("ImageToImage returned error: %v", err)
+	}
+
+	if string(uploader.data) != "inline-image" {
+		t.Fatalf("expected uploaded inline image data, got %q", string(uploader.data))
+	}
+	if provider.request.ImageURL != uploader.url {
+		t.Fatalf("expected uploaded image url %q, got %q", uploader.url, provider.request.ImageURL)
+	}
+	if provider.request.ImageBase64 != "" {
+		t.Fatalf("expected image_base64 to be cleared, got %q", provider.request.ImageBase64)
+	}
+}
+
+func TestImageToImageRejectsInlineBase64WithoutUploader(t *testing.T) {
+	provider := &stubProvider{response: model.GenerateImageResponse{CreatedAt: 123}}
+	service := NewService(config.Config{RequestTimeout: time.Second}, provider, nil)
+
+	inline := "data:image/png;base64," + base64.StdEncoding.EncodeToString([]byte("inline-image"))
+	_, err := service.ImageToImage(context.Background(), model.GenerateImageRequest{
+		Prompt:      "edit prompt",
+		ImageBase64: inline,
+	})
+	if err == nil || !strings.Contains(err.Error(), "image_base64 requires configured uploader") {
+		t.Fatalf("expected uploader configuration error, got %v", err)
 	}
 }

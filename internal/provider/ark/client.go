@@ -80,14 +80,8 @@ func (c *Client) generate(ctx context.Context, modelName string, input model.Gen
 		NumImages:      input.NumImages,
 	}
 
-	if input.ImageBase64 != "" {
-		requestBody.Image = input.ImageBase64
-	}
 	if input.ImageURL != "" {
-		if requestBody.Extra == nil {
-			requestBody.Extra = map[string]any{}
-		}
-		requestBody.Extra["image_url"] = input.ImageURL
+		requestBody.Image = input.ImageURL
 	}
 	if input.Strength != nil {
 		if requestBody.Extra == nil {

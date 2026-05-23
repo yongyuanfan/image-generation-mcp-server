@@ -62,6 +62,10 @@ func (s *Service) ImageToImage(ctx context.Context, input model.GenerateImageReq
 	if strings.TrimSpace(input.ImageURL) == "" && strings.TrimSpace(input.ImageBase64) == "" {
 		return model.GenerateImageResponse{}, fmt.Errorf("image_url or image_base64 is required")
 	}
+	input, err = s.prepareImageToImageInput(ctx, input)
+	if err != nil {
+		return model.GenerateImageResponse{}, err
+	}
 	response, err := s.provider.ImageToImage(ctx, input)
 	return s.finalizeResponse(ctx, response, err)
 }
@@ -121,6 +125,32 @@ func parseImageSize(size string) (int, int, error) {
 	}
 
 	return width, height, nil
+}
+
+func (s *Service) prepareImageToImageInput(ctx context.Context, input model.GenerateImageRequest) (model.GenerateImageRequest, error) {
+	if strings.TrimSpace(input.ImageURL) != "" {
+		input.ImageBase64 = ""
+		return input, nil
+	}
+
+	if s.uploader == nil {
+		return model.GenerateImageRequest{}, fmt.Errorf("image_base64 requires configured uploader to obtain a public image url")
+	}
+
+	asset, err := decodeInlineImage(input.ImageBase64)
+	if err != nil {
+		return model.GenerateImageRequest{}, fmt.Errorf("decode image_base64: %w", err)
+	}
+
+	objectName := buildObjectName(s.config.MinIOObjectPrefix, "source", 0, asset.ext, time.Now())
+	uploadedURL, err := s.uploader.Upload(ctx, objectName, asset.contentType, asset.data)
+	if err != nil {
+		return model.GenerateImageRequest{}, fmt.Errorf("upload image_base64: %w", err)
+	}
+
+	input.ImageURL = uploadedURL
+	input.ImageBase64 = ""
+	return input, nil
 }
 
 func (s *Service) withFallbackTimestamp(response model.GenerateImageResponse, err error) (model.GenerateImageResponse, error) {
