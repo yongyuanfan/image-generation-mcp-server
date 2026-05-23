@@ -24,6 +24,8 @@ The server automatically loads environment variables from the project root `.env
 
 If MinIO is configured, generated images are downloaded or decoded by the service, uploaded to MinIO, and the returned `images` values are rewritten to `MINIO_PUBLIC_BASE_URL/{bucket}/{objectName}`. When an upload fails, the service falls back to the original provider URL or inline image.
 
+When the request `size` is smaller than the provider minimum pixel requirement, the service automatically scales it up while keeping the original aspect ratio.
+
 Default endpoints:
 
 - MCP: `http://localhost:9101/mcp`

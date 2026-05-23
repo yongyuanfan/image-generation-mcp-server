@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"strconv"
 	"strings"
@@ -85,9 +86,11 @@ func normalizeRequest(input model.GenerateImageRequest) (model.GenerateImageRequ
 	if input.Size == "" {
 		input.Size = "2048x2048"
 	}
-	if err := validateImageSize(input.Size); err != nil {
+	normalizedSize, err := normalizeImageSize(input.Size)
+	if err != nil {
 		return model.GenerateImageRequest{}, err
 	}
+	input.Size = normalizedSize
 	if input.ResponseFormat == "" {
 		input.ResponseFormat = "url"
 	}
@@ -96,17 +99,6 @@ func normalizeRequest(input model.GenerateImageRequest) (model.GenerateImageRequ
 		input.NumImages = &defaultCount
 	}
 	return input, nil
-}
-
-func validateImageSize(size string) error {
-	width, height, err := parseImageSize(size)
-	if err != nil {
-		return err
-	}
-	if width*height < minimumImagePixels {
-		return fmt.Errorf("size must be at least %d pixels", minimumImagePixels)
-	}
-	return nil
 }
 
 func parseImageSize(size string) (int, int, error) {
@@ -125,6 +117,28 @@ func parseImageSize(size string) (int, int, error) {
 	}
 
 	return width, height, nil
+}
+
+func normalizeImageSize(size string) (string, error) {
+	width, height, err := parseImageSize(size)
+	if err != nil {
+		return "", err
+	}
+
+	pixels := width * height
+	if pixels >= minimumImagePixels {
+		return fmt.Sprintf("%dx%d", width, height), nil
+	}
+
+	scale := math.Sqrt(float64(minimumImagePixels) / float64(pixels))
+	normalizedWidth := int(math.Ceil(float64(width) * scale))
+	normalizedHeight := int(math.Ceil(float64(height) * scale))
+
+	for normalizedWidth*normalizedHeight < minimumImagePixels {
+		normalizedHeight++
+	}
+
+	return fmt.Sprintf("%dx%d", normalizedWidth, normalizedHeight), nil
 }
 
 func (s *Service) prepareImageToImageInput(ctx context.Context, input model.GenerateImageRequest) (model.GenerateImageRequest, error) {

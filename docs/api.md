@@ -43,6 +43,8 @@ Response:
 
 If MinIO is configured, the server uploads generated images to MinIO and returns `MINIO_PUBLIC_BASE_URL/{bucket}/{objectName}`. If an upload fails, the original upstream image address is returned for that image.
 
+If `size` is smaller than the provider minimum pixel requirement, the server automatically scales it up while preserving the original aspect ratio.
+
 Example:
 
 ```bash
@@ -72,6 +74,8 @@ Request:
 `POST /api/v1/images/edits`
 
 The same MinIO upload and fallback behavior applies to edited images.
+
+If `size` is smaller than the provider minimum pixel requirement, the server automatically scales it up while preserving the original aspect ratio.
 
 Example with image URL:
 

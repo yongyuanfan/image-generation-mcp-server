@@ -13,7 +13,7 @@ import (
 
 type textToImageInput struct {
 	Prompt         string   `json:"prompt" jsonschema:"text prompt used to generate an image"`
-	Size           string   `json:"size,omitempty" jsonschema:"output image size in WIDTHxHEIGHT format, for example 2048x2048; total pixels must be at least 3686400"`
+	Size           string   `json:"size,omitempty" jsonschema:"output image size in WIDTHxHEIGHT format, for example 2048x2048; sizes below the provider minimum are automatically scaled up"`
 	ResponseFormat string   `json:"response_format,omitempty" jsonschema:"response format: url or b64_json"`
 	Seed           *int64   `json:"seed,omitempty" jsonschema:"optional random seed"`
 	Watermark      *bool    `json:"watermark,omitempty" jsonschema:"whether to keep the provider watermark"`
@@ -25,7 +25,7 @@ type imageToImageInput struct {
 	Prompt         string   `json:"prompt" jsonschema:"edit prompt used to transform the source image"`
 	ImageURL       string   `json:"image_url,omitempty" jsonschema:"publicly accessible source image url"`
 	ImageBase64    string   `json:"image_base64,omitempty" jsonschema:"base64 encoded source image content"`
-	Size           string   `json:"size,omitempty" jsonschema:"output image size in WIDTHxHEIGHT format, for example 2048x2048; total pixels must be at least 3686400"`
+	Size           string   `json:"size,omitempty" jsonschema:"output image size in WIDTHxHEIGHT format, for example 2048x2048; sizes below the provider minimum are automatically scaled up"`
 	ResponseFormat string   `json:"response_format,omitempty" jsonschema:"response format: url or b64_json"`
 	Seed           *int64   `json:"seed,omitempty" jsonschema:"optional random seed"`
 	Watermark      *bool    `json:"watermark,omitempty" jsonschema:"whether to keep the provider watermark"`

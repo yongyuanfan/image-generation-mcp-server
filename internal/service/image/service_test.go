@@ -123,13 +123,17 @@ func TestTextToImageFallsBackToOriginalURLWhenUploadFails(t *testing.T) {
 }
 
 func TestTextToImageRejectsTooSmallSize(t *testing.T) {
-	service := NewService(config.Config{RequestTimeout: time.Second}, &stubProvider{}, nil)
+	provider := &stubProvider{response: model.GenerateImageResponse{CreatedAt: 123}}
+	service := NewService(config.Config{RequestTimeout: time.Second}, provider, nil)
 	_, err := service.TextToImage(context.Background(), model.GenerateImageRequest{
 		Prompt: "test prompt",
 		Size:   "1024x1024",
 	})
-	if err == nil || !strings.Contains(err.Error(), "size must be at least 3686400 pixels") {
-		t.Fatalf("expected size validation error, got %v", err)
+	if err != nil {
+		t.Fatalf("expected small size to be normalized, got %v", err)
+	}
+	if provider.request.Size != "1920x1920" {
+		t.Fatalf("expected normalized size 1920x1920, got %q", provider.request.Size)
 	}
 }
 
@@ -145,10 +149,31 @@ func TestTextToImageRejectsInvalidSizeFormat(t *testing.T) {
 }
 
 func TestTextToImageUsesDefaultValidSize(t *testing.T) {
-	service := NewService(config.Config{RequestTimeout: time.Second}, &stubProvider{response: model.GenerateImageResponse{}}, nil)
+	provider := &stubProvider{response: model.GenerateImageResponse{}}
+	service := NewService(config.Config{RequestTimeout: time.Second}, provider, nil)
 	_, err := service.TextToImage(context.Background(), model.GenerateImageRequest{Prompt: "test prompt"})
 	if err != nil {
 		t.Fatalf("expected default size to pass validation, got %v", err)
+	}
+	if provider.request.Size != "2048x2048" {
+		t.Fatalf("expected default size 2048x2048, got %q", provider.request.Size)
+	}
+}
+
+func TestImageToImageNormalizesTooSmallSize(t *testing.T) {
+	provider := &stubProvider{response: model.GenerateImageResponse{CreatedAt: 123}}
+	service := NewService(config.Config{RequestTimeout: time.Second}, provider, nil)
+
+	_, err := service.ImageToImage(context.Background(), model.GenerateImageRequest{
+		Prompt:   "edit prompt",
+		ImageURL: "https://example.com/source.png",
+		Size:     "1024x1024",
+	})
+	if err != nil {
+		t.Fatalf("ImageToImage returned error: %v", err)
+	}
+	if provider.request.Size != "1920x1920" {
+		t.Fatalf("expected normalized size 1920x1920, got %q", provider.request.Size)
 	}
 }
 

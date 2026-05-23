@@ -10,6 +10,8 @@ Generate one or more images from a text prompt.
 
 When MinIO is configured, returned image URLs are rewritten to `MINIO_PUBLIC_BASE_URL/{bucket}/{objectName}` after upload. Failed uploads fall back to the original upstream image result.
 
+If `size` is smaller than the provider minimum pixel requirement, the server automatically scales it up while preserving the original aspect ratio.
+
 Inputs:
 
 - `prompt`
@@ -25,6 +27,8 @@ Inputs:
 Generate one or more edited images from a prompt and an input image.
 
 The same MinIO upload and fallback behavior applies to edited images.
+
+If `size` is smaller than the provider minimum pixel requirement, the server automatically scales it up while preserving the original aspect ratio.
 
 Inputs:
 
