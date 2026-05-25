@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"strings"
 
+	"image-generation-mcp-server/internal/common"
 	"image-generation-mcp-server/internal/config"
 	"image-generation-mcp-server/internal/model"
 )
@@ -68,6 +69,13 @@ func (c *Client) ImageToImage(ctx context.Context, input model.GenerateImageRequ
 	return c.generate(ctx, c.imageModel, input)
 }
 
+func numImages(input model.GenerateImageRequest) int {
+	if input.NumImages == nil {
+		return 1
+	}
+	return *input.NumImages
+}
+
 func (c *Client) generate(ctx context.Context, modelName string, input model.GenerateImageRequest) (model.GenerateImageResponse, error) {
 	requestBody := imageGenerationRequest{
 		Model:          modelName,
@@ -89,6 +97,8 @@ func (c *Client) generate(ctx context.Context, modelName string, input model.Gen
 		}
 		requestBody.Extra["strength"] = input.Strength
 	}
+
+	common.Debugf("ark generate model=%s prompt=%s size=%s num_images=%v", modelName, input.Prompt, input.Size, numImages(input))
 
 	body, err := json.Marshal(requestBody)
 	if err != nil {
@@ -136,12 +146,14 @@ func (c *Client) generate(ctx context.Context, modelName string, input model.Gen
 		}
 	}
 
-	return model.GenerateImageResponse{
+	response := model.GenerateImageResponse{
 		Images:    images,
 		RequestID: resp.Header.Get("X-Tt-Logid"),
 		Model:     modelName,
 		CreatedAt: parsed.Created,
-	}, nil
+	}
+	common.Debugf("ark response images=%d request_id=%s model=%s", len(images), response.RequestID, modelName)
+	return response, nil
 }
 
 func normalizeBase64Image(value string) string {

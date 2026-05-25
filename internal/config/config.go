@@ -11,6 +11,7 @@ import (
 )
 
 type Config struct {
+	Mode                  string
 	HTTPAddr              string
 	APIPrefix             string
 	MCPPath               string
@@ -53,6 +54,7 @@ func Load() (Config, error) {
 	}
 
 	cfg := Config{
+		Mode:                  normalizeMode(envOrDefault("MODE", "prod")),
 		HTTPAddr:              envOrDefault("HTTP_ADDR", ":9101"),
 		APIPrefix:             normalizePath(envOrDefault("API_PREFIX", "/api/v1")),
 		MCPPath:               normalizePath(envOrDefault("MCP_PATH", "/mcp")),
@@ -77,8 +79,15 @@ func Load() (Config, error) {
 	if cfg.ARKAPIKey == "" {
 		return Config{}, fmt.Errorf("ARK_API_KEY is required")
 	}
+	if cfg.Mode != "dev" && cfg.Mode != "prod" {
+		return Config{}, fmt.Errorf("MODE must be dev or prod")
+	}
 
 	return cfg, nil
+}
+
+func normalizeMode(value string) string {
+	return strings.ToLower(strings.TrimSpace(value))
 }
 
 func envOrDefault(key, fallback string) string {

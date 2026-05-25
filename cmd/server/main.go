@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"image-generation-mcp-server/internal/apiserver"
+	"image-generation-mcp-server/internal/common"
 	"image-generation-mcp-server/internal/config"
 	"image-generation-mcp-server/internal/mcpserver"
 	"image-generation-mcp-server/internal/provider/ark"
@@ -21,6 +22,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	common.SetDebug(cfg.Mode == "dev")
 
 	provider := ark.NewClient(cfg)
 	uploader, err := miniostorage.NewClient(context.Background(), cfg)
@@ -48,7 +50,7 @@ func main() {
 	defer stop()
 
 	go func() {
-		log.Printf("http server listening on %s", cfg.HTTPAddr)
+		log.Printf("http server listening on %s mode=%s", cfg.HTTPAddr, cfg.Mode)
 		log.Printf("mcp endpoint available at %s", cfg.MCPPath)
 		log.Printf("api endpoint available at %s", cfg.APIPrefix)
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {

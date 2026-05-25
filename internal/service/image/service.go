@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"image-generation-mcp-server/internal/common"
 	"image-generation-mcp-server/internal/config"
 	"image-generation-mcp-server/internal/model"
 	"image-generation-mcp-server/internal/storage"
@@ -39,6 +40,8 @@ func NewService(cfg config.Config, provider provider, uploader storage.Uploader)
 }
 
 func (s *Service) TextToImage(ctx context.Context, input model.GenerateImageRequest) (model.GenerateImageResponse, error) {
+	common.Debugf("text_to_image prompt=%s size=%s", input.Prompt, input.Size)
+
 	var err error
 	input, err = normalizeRequest(input)
 	if err != nil {
@@ -52,6 +55,8 @@ func (s *Service) TextToImage(ctx context.Context, input model.GenerateImageRequ
 }
 
 func (s *Service) ImageToImage(ctx context.Context, input model.GenerateImageRequest) (model.GenerateImageResponse, error) {
+	common.Debugf("image_to_image prompt=%s size=%s", input.Prompt, input.Size)
+
 	var err error
 	input, err = normalizeRequest(input)
 	if err != nil {
@@ -187,6 +192,8 @@ func (s *Service) finalizeResponse(ctx context.Context, response model.GenerateI
 	}
 
 	for index, original := range response.Images {
+		common.Debugf("upload image request_id=%s index=%d url=%s", response.RequestID, index, original)
+
 		asset, resolveErr := s.resolveImageAsset(ctx, original)
 		if resolveErr != nil {
 			log.Printf("skip minio upload for request_id=%s image_index=%d: resolve image failed: %v", response.RequestID, index, resolveErr)
