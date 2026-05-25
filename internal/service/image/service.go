@@ -107,20 +107,61 @@ func normalizeRequest(input model.GenerateImageRequest) (model.GenerateImageRequ
 }
 
 func parseImageSize(size string) (int, int, error) {
+	size = strings.TrimSpace(size)
+	if size == "" {
+		return 2048, 2048, nil
+	}
+
+	original := size
+
+	size = strings.ReplaceAll(size, "×", "x")
+	size = strings.ReplaceAll(size, "*", "x")
+	size = strings.ReplaceAll(size, "X", "x")
+
+	switch strings.ToLower(size) {
+	case "square", "正方形":
+		return 2048, 2048, nil
+	case "landscape", "横版":
+		return ratioToSize(16, 9)
+	case "portrait", "竖版":
+		return ratioToSize(9, 16)
+	}
+
+	if strings.Contains(size, ":") {
+		parts := strings.Split(size, ":")
+		if len(parts) == 2 {
+			wRatio, err1 := strconv.Atoi(strings.TrimSpace(parts[0]))
+			hRatio, err2 := strconv.Atoi(strings.TrimSpace(parts[1]))
+			if err1 == nil && err2 == nil && wRatio > 0 && hRatio > 0 {
+				return ratioToSize(wRatio, hRatio)
+			}
+		}
+	}
+
 	parts := strings.Split(size, "x")
 	if len(parts) != 2 {
-		return 0, 0, fmt.Errorf("size must be in WIDTHxHEIGHT format, for example 2048x2048")
+		return 0, 0, fmt.Errorf("invalid size %q: use WIDTHxHEIGHT (e.g. 2048x2048), ratio (e.g. 16:9, 1:1), or alias (square, landscape, portrait, 正方形, 横版, 竖版)", original)
 	}
 
 	width, err := strconv.Atoi(strings.TrimSpace(parts[0]))
 	if err != nil || width <= 0 {
-		return 0, 0, fmt.Errorf("size must be in WIDTHxHEIGHT format, for example 2048x2048")
+		return 0, 0, fmt.Errorf("invalid size %q: use WIDTHxHEIGHT (e.g. 2048x2048), ratio (e.g. 16:9, 1:1), or alias (square, landscape, portrait, 正方形, 横版, 竖版)", original)
 	}
 	height, err := strconv.Atoi(strings.TrimSpace(parts[1]))
 	if err != nil || height <= 0 {
-		return 0, 0, fmt.Errorf("size must be in WIDTHxHEIGHT format, for example 2048x2048")
+		return 0, 0, fmt.Errorf("invalid size %q: use WIDTHxHEIGHT (e.g. 2048x2048), ratio (e.g. 16:9, 1:1), or alias (square, landscape, portrait, 正方形, 横版, 竖版)", original)
 	}
 
+	return width, height, nil
+}
+
+func ratioToSize(ratioW, ratioH int) (int, int, error) {
+	scale := math.Sqrt(float64(minimumImagePixels) / float64(ratioW*ratioH))
+	width := int(math.Ceil(float64(ratioW) * scale))
+	height := int(math.Ceil(float64(ratioH) * scale))
+	for width*height < minimumImagePixels {
+		height++
+	}
 	return width, height, nil
 }
 

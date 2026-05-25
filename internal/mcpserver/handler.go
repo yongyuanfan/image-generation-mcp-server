@@ -13,7 +13,8 @@ import (
 
 type textToImageInput struct {
 	Prompt         string   `json:"prompt" jsonschema:"text prompt used to generate an image"`
-	Size           string   `json:"size,omitempty" jsonschema:"output image size in WIDTHxHEIGHT format, for example 2048x2048; sizes below the provider minimum are automatically scaled up"`
+	Size           string   `json:"size,omitempty" jsonschema:"output image size, default 2048x2048; supports WIDTHxHEIGHT (e.g. 2048x2048), ratio (e.g. 16:9, 1:1), or alias (square, landscape, portrait, 正方形, 横版, 竖版); small sizes are automatically scaled up"`
+
 	ResponseFormat string   `json:"response_format,omitempty" jsonschema:"response format: url or b64_json"`
 	Seed           *int64   `json:"seed,omitempty" jsonschema:"optional random seed"`
 	Watermark      *bool    `json:"watermark,omitempty" jsonschema:"whether to keep the provider watermark"`
@@ -25,7 +26,7 @@ type imageToImageInput struct {
 	Prompt         string   `json:"prompt" jsonschema:"edit prompt used to transform the source image"`
 	ImageURL       string   `json:"image_url,omitempty" jsonschema:"publicly accessible source image url"`
 	ImageBase64    string   `json:"image_base64,omitempty" jsonschema:"base64 encoded source image content"`
-	Size           string   `json:"size,omitempty" jsonschema:"output image size in WIDTHxHEIGHT format, for example 2048x2048; sizes below the provider minimum are automatically scaled up"`
+	Size           string   `json:"size,omitempty" jsonschema:"output image size, default 2048x2048; supports WIDTHxHEIGHT (e.g. 2048x2048), ratio (e.g. 16:9, 1:1), or alias (square, landscape, portrait, 正方形, 横版, 竖版); small sizes are automatically scaled up"`
 	ResponseFormat string   `json:"response_format,omitempty" jsonschema:"response format: url or b64_json"`
 	Seed           *int64   `json:"seed,omitempty" jsonschema:"optional random seed"`
 	Watermark      *bool    `json:"watermark,omitempty" jsonschema:"whether to keep the provider watermark"`
@@ -40,9 +41,13 @@ func NewHandler(cfg config.Config, service *imagesvc.Service) http.Handler {
 		Name:        "text_to_image",
 		Description: "Generate one or more images from a text prompt using Doubao Seedream.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, input textToImageInput) (*mcp.CallToolResult, model.GenerateImageResponse, error) {
+		size := input.Size
+		if size == "" {
+			size = "2048x2048"
+		}
 		response, err := service.TextToImage(ctx, model.GenerateImageRequest{
 			Prompt:         input.Prompt,
-			Size:           input.Size,
+			Size:           size,
 			ResponseFormat: input.ResponseFormat,
 			Seed:           input.Seed,
 			Watermark:      input.Watermark,
@@ -56,11 +61,15 @@ func NewHandler(cfg config.Config, service *imagesvc.Service) http.Handler {
 		Name:        "image_to_image",
 		Description: "Generate one or more edited images from a prompt and an input image using Doubao Seedream.",
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, input imageToImageInput) (*mcp.CallToolResult, model.GenerateImageResponse, error) {
+		size := input.Size
+		if size == "" {
+			size = "2048x2048"
+		}
 		response, err := service.ImageToImage(ctx, model.GenerateImageRequest{
 			Prompt:         input.Prompt,
 			ImageURL:       input.ImageURL,
 			ImageBase64:    input.ImageBase64,
-			Size:           input.Size,
+			Size:           size,
 			ResponseFormat: input.ResponseFormat,
 			Seed:           input.Seed,
 			Watermark:      input.Watermark,

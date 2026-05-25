@@ -137,14 +137,117 @@ func TestTextToImageRejectsTooSmallSize(t *testing.T) {
 	}
 }
 
-func TestTextToImageRejectsInvalidSizeFormat(t *testing.T) {
-	service := NewService(config.Config{RequestTimeout: time.Second}, &stubProvider{}, nil)
+func TestTextToImageAcceptsAsteriskSeparator(t *testing.T) {
+	provider := &stubProvider{response: model.GenerateImageResponse{CreatedAt: 123}}
+	service := NewService(config.Config{RequestTimeout: time.Second}, provider, nil)
 	_, err := service.TextToImage(context.Background(), model.GenerateImageRequest{
 		Prompt: "test prompt",
 		Size:   "1024*1024",
 	})
-	if err == nil || !strings.Contains(err.Error(), "size must be in WIDTHxHEIGHT format") {
-		t.Fatalf("expected invalid size format error, got %v", err)
+	if err != nil {
+		t.Fatalf("expected asterisk separator to be accepted, got %v", err)
+	}
+	if provider.request.Size != "1920x1920" {
+		t.Fatalf("expected normalized size 1920x1920, got %q", provider.request.Size)
+	}
+}
+
+func TestTextToImageRejectsInvalidSizeFormat(t *testing.T) {
+	service := NewService(config.Config{RequestTimeout: time.Second}, &stubProvider{}, nil)
+	_, err := service.TextToImage(context.Background(), model.GenerateImageRequest{
+		Prompt: "test prompt",
+		Size:   "abc",
+	})
+	if err == nil || !strings.Contains(err.Error(), "invalid size") {
+		t.Fatalf("expected invalid size error, got %v", err)
+	}
+}
+
+func TestTextToImageAcceptsRatioFormat(t *testing.T) {
+	tests := []struct {
+		name     string
+		size     string
+		expected string
+	}{
+		{"ratio 1:1", "1:1", "1920x1920"},
+		{"ratio 16:9", "16:9", "2560x1440"},
+		{"ratio 9:16", "9:16", "1440x2560"},
+		{"ratio 4:3", "4:3", "2218x1663"},
+		{"ratio 3:4", "3:4", "1663x2218"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			provider := &stubProvider{response: model.GenerateImageResponse{CreatedAt: 123}}
+			service := NewService(config.Config{RequestTimeout: time.Second}, provider, nil)
+			_, err := service.TextToImage(context.Background(), model.GenerateImageRequest{
+				Prompt: "test prompt",
+				Size:   tt.size,
+			})
+			if err != nil {
+				t.Fatalf("expected size %s to be accepted, got %v", tt.size, err)
+			}
+			if provider.request.Size != tt.expected {
+				t.Fatalf("expected normalized size %s, got %q", tt.expected, provider.request.Size)
+			}
+		})
+	}
+}
+
+func TestTextToImageAcceptsAliasFormat(t *testing.T) {
+	tests := []struct {
+		name     string
+		size     string
+		expected string
+	}{
+		{"alias square", "square", "2048x2048"},
+		{"alias 正方形", "正方形", "2048x2048"},
+		{"alias landscape", "landscape", "2560x1440"},
+		{"alias 横版", "横版", "2560x1440"},
+		{"alias portrait", "portrait", "1440x2560"},
+		{"alias 竖版", "竖版", "1440x2560"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			provider := &stubProvider{response: model.GenerateImageResponse{CreatedAt: 123}}
+			service := NewService(config.Config{RequestTimeout: time.Second}, provider, nil)
+			_, err := service.TextToImage(context.Background(), model.GenerateImageRequest{
+				Prompt: "test prompt",
+				Size:   tt.size,
+			})
+			if err != nil {
+				t.Fatalf("expected alias %s to be accepted, got %v", tt.size, err)
+			}
+			if provider.request.Size != tt.expected {
+				t.Fatalf("expected alias %s to produce size %s, got %q", tt.size, tt.expected, provider.request.Size)
+			}
+		})
+	}
+}
+
+func TestTextToImageAcceptsCaseInsensitiveSize(t *testing.T) {
+	tests := []struct {
+		name     string
+		size     string
+		expected string
+	}{
+		{"uppercase X", "1024X1024", "1920x1920"},
+		{"full-width ×", "1024×1024", "1920x1920"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			provider := &stubProvider{response: model.GenerateImageResponse{CreatedAt: 123}}
+			service := NewService(config.Config{RequestTimeout: time.Second}, provider, nil)
+			_, err := service.TextToImage(context.Background(), model.GenerateImageRequest{
+				Prompt: "test prompt",
+				Size:   tt.size,
+			})
+			if err != nil {
+				t.Fatalf("expected size %s to be accepted, got %v", tt.size, err)
+			}
+			if provider.request.Size != tt.expected {
+				t.Fatalf("expected normalized size %s, got %q", tt.expected, provider.request.Size)
+			}
+		})
 	}
 }
 
