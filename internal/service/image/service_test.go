@@ -280,6 +280,39 @@ func TestImageToImageNormalizesTooSmallSize(t *testing.T) {
 	}
 }
 
+func TestImageToImageAcceptsFlexibleSizeFormat(t *testing.T) {
+	tests := []struct {
+		name     string
+		size     string
+		expected string
+	}{
+		{"ratio 1:1", "1:1", "1920x1920"},
+		{"ratio 16:9", "16:9", "2560x1440"},
+		{"alias 横版", "横版", "2560x1440"},
+		{"alias landscape", "landscape", "2560x1440"},
+		{"alias 竖版", "竖版", "1440x2560"},
+		{"full-width ×", "1024×1024", "1920x1920"},
+		{"asterisk *", "1024*1024", "1920x1920"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			provider := &stubProvider{response: model.GenerateImageResponse{CreatedAt: 123}}
+			service := NewService(config.Config{RequestTimeout: time.Second}, provider, nil)
+			_, err := service.ImageToImage(context.Background(), model.GenerateImageRequest{
+				Prompt:   "edit prompt",
+				ImageURL: "https://example.com/source.png",
+				Size:     tt.size,
+			})
+			if err != nil {
+				t.Fatalf("expected size %s to be accepted, got %v", tt.size, err)
+			}
+			if provider.request.Size != tt.expected {
+				t.Fatalf("expected normalized size %s, got %q", tt.expected, provider.request.Size)
+			}
+		})
+	}
+}
+
 func TestImageToImageKeepsImageURL(t *testing.T) {
 	provider := &stubProvider{response: model.GenerateImageResponse{CreatedAt: 123}}
 	service := NewService(config.Config{RequestTimeout: time.Second}, provider, nil)
